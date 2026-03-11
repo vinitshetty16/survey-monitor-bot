@@ -11,13 +11,15 @@ SURVEY_URL = os.getenv("SURVEY_URL")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 EMAIL_TO = os.getenv("EMAIL_TO")
 
-BOT_RUNNING = True
+BOT_RUNNING = False
 
 session = requests.Session()
 logged_in = False
 
 
 def send_email(message):
+
+    print("SENDING EMAIL...")
 
     url = "https://api.resend.com/emails"
 
@@ -27,7 +29,7 @@ def send_email(message):
     }
 
     data = {
-        "from": "Survey Bot <onboarding@resend.dev>",
+        "from": "shettyvinit37@gmail.com",
         "to": [EMAIL_TO],
         "subject": "Survey Alert",
         "html": f"<p>{message}</p>"
@@ -35,12 +37,19 @@ def send_email(message):
 
     try:
 
-        response = requests.post(url, json=data, headers=headers)
+        response = requests.post(
+            url,
+            json=data,
+            headers=headers,
+            timeout=20
+        )
 
-        print("EMAIL RESPONSE:", response.status_code, response.text)
+        print("EMAIL RESPONSE CODE:", response.status_code)
+        print("EMAIL RESPONSE BODY:", response.text)
 
     except Exception as e:
-        print("EMAIL ERROR:", e)
+
+        print("EMAIL ERROR:", str(e))
 
 
 def login():
@@ -81,7 +90,6 @@ def check_surveys():
     print("Page checked")
 
     if "No more surveys" not in page:
-    #if True:
 
         print("Survey detected!")
 
@@ -94,7 +102,13 @@ def check_surveys():
 
 def run_bot():
 
+    global BOT_RUNNING
+
+    print("BOT LOOP STARTED")
+
     while BOT_RUNNING:
+
+        print("BOT LOOP RUNNING")
 
         try:
 
@@ -104,6 +118,4 @@ def run_bot():
 
             print("BOT ERROR:", e)
 
-
-        time.sleep(60)  # 5 minutes
-
+        time.sleep(60)  # check every 60 seconds
