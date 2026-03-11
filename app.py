@@ -17,10 +17,18 @@ def start():
 
     global bot_thread
 
-    if not bot.BOT_RUNNING:
+    if bot_thread is None or not bot_thread.is_alive():
+
         bot.BOT_RUNNING = True
-        bot_thread = threading.Thread(target=bot.run_bot)
+
+        bot_thread = threading.Thread(
+            target=bot.run_bot,
+            daemon=True
+        )
+
         bot_thread.start()
+
+        print("BOT THREAD STARTED")
 
     return redirect("/")
 
@@ -29,4 +37,11 @@ def start():
 def pause():
 
     bot.BOT_RUNNING = False
+
+    print("BOT PAUSED")
+
     return redirect("/")
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
