@@ -15,8 +15,9 @@ EMAIL_FROM = os.getenv("EMAIL_FROM")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 EMAIL_TO = os.getenv("EMAIL_TO")
 
+
 BOT_RUNNING = False
-TEST_MODE = True
+TEST_MODE = True  # set False after testing email
 
 
 session = requests.Session()
@@ -55,11 +56,13 @@ def login():
 
     response = session.post(LOGIN_URL, data=payload)
 
+    print("Login status:", response.status_code)
+
     if response.status_code == 200:
         logged_in = True
         print("Login successful")
     else:
-        print("Login failed:", response.status_code)
+        print("Login failed")
 
 
 def check_surveys():
@@ -75,14 +78,14 @@ def check_surveys():
 
     page = response.text
 
-    # TEST MODE
+    print("PAGE DEBUG:")
+    print(page[:1000])
+
     if TEST_MODE:
 
-        if "No more surveys" in page:
-            print("TEST: No surveys detected")
-            send_email("SMTP test successful. Bot detected 'No more surveys'.")
+        print("TEST MODE: sending email")
+        send_email("Survey bot SMTP test successful.")
 
-    # REAL MODE
     else:
 
         if "No more surveys" not in page:
@@ -105,4 +108,4 @@ def run_bot():
         except Exception as e:
             print("BOT ERROR:", e)
 
-        time.sleep(60)
+        time.sleep(300)
