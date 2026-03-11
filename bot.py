@@ -2,6 +2,7 @@ import smtplib
 import os
 from email.mime.text import MIMEText
 
+BOT_RUNNING = True
 
 EMAIL_FROM = os.getenv("EMAIL_FROM")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
@@ -25,6 +26,7 @@ def send_email():
 
     except Exception as e:
         print("EMAIL ERROR:", e)
+
 
 
 send_email()
