@@ -49,8 +49,8 @@ def create_driver():
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
 
-    # IMPORTANT for Render cloud
-    chrome_options.binary_location = "/usr/bin/chromium-browser"
+    # correct path for Render
+    chrome_options.binary_location = "/usr/bin/chromium"
 
     driver = webdriver.Chrome(
         service=Service(ChromeDriverManager().install()),
