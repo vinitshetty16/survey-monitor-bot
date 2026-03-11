@@ -104,4 +104,5 @@ def run_bot():
 
             print("BOT ERROR:", e)
 
-        time.sleep(300)  # 5 minutes
+
+        time.sleep(60)  # 5 minutes
