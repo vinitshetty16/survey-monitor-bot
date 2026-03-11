@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Survey Bot</title>
+
+<style>
+
+body{
+font-family:Arial;
+text-align:center;
+margin-top:120px;
+}
+
+button{
+padding:15px 35px;
+font-size:20px;
+margin:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Survey Monitoring Bot</h1>
+
+<h2>Status:
+{% if running %}
+Running
+{% else %}
+Paused
+{% endif %}
+</h2>
+
+<a href="/start">
+<button>Start</button>
+</a>
+
+<a href="/pause">
+<button>Pause</button>
+</a>
+
+</body>
+
+</html>
