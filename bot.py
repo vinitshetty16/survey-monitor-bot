@@ -71,7 +71,8 @@ def check_surveys():
 
     page = driver.page_source
 
-    if "No more surveys" not in page:
+    #if "No more surveys" not in page:
+    if True:
         print("Survey detected!")
         send_email()
     else:
@@ -91,4 +92,4 @@ def run_bot():
         except Exception as e:
             print("Error:", e)
 
-        time.sleep(900)
+        time.sleep(300)
