@@ -80,8 +80,8 @@ def check_surveys():
 
     print("Page checked")
 
-    #if "No more surveys" not in page:
-    if True:
+    if "No more surveys" not in page:
+    #if True:
 
         print("Survey detected!")
 
@@ -106,3 +106,4 @@ def run_bot():
 
 
         time.sleep(60)  # 5 minutes
+
