@@ -29,7 +29,7 @@ def send_email(message):
     }
 
     data = {
-        "from": "shettyvinit37@gmail.com",
+        "from": "Survey Bot <onboarding@resend.dev>",
         "to": [EMAIL_TO],
         "subject": "Survey Alert",
         "html": f"<p>{message}</p>"
@@ -119,3 +119,4 @@ def run_bot():
             print("BOT ERROR:", e)
 
         time.sleep(60)  # check every 60 seconds
+
