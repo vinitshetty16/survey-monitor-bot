@@ -108,4 +108,5 @@ def run_bot():
         except Exception as e:
             print("BOT ERROR:", e)
 
-        time.sleep(300)
+
+        time.sleep(60)
