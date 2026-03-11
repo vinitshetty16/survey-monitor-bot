@@ -24,24 +24,33 @@ BOT_RUNNING = False
 
 
 def send_email():
+    try:
+        msg = MIMEText("New survey available! Login immediately.")
+        msg["Subject"] = "Survey Alert"
+        msg["From"] = EMAIL_FROM
+        msg["To"] = EMAIL_TO
 
-    msg = MIMEText("New survey available! Login immediately.")
-    msg["Subject"] = "Survey Alert"
-    msg["From"] = EMAIL_FROM
-    msg["To"] = EMAIL_TO
+        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+        server.login(EMAIL_FROM, EMAIL_PASSWORD)
+        server.send_message(msg)
+        server.quit()
 
-    server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
-    server.login(EMAIL_FROM, EMAIL_PASSWORD)
-    server.send_message(msg)
-    server.quit()
+        print("EMAIL SENT SUCCESSFULLY")
+
+    except Exception as e:
+        print("EMAIL ERROR:", e)
 
 
 def create_driver():
 
     chrome_options = Options()
+
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
+
+    # IMPORTANT for Render cloud
+    chrome_options.binary_location = "/usr/bin/chromium-browser"
 
     driver = webdriver.Chrome(
         service=Service(ChromeDriverManager().install()),
@@ -57,28 +66,39 @@ def check_surveys():
 
     driver = create_driver()
 
-    driver.get(LOGIN_URL)
-    time.sleep(3)
+    try:
 
-    driver.find_element(By.NAME, "username").send_keys(USERNAME)
-    driver.find_element(By.NAME, "password").send_keys(PASSWORD)
-    driver.find_element(By.XPATH, "//button").click()
+        driver.get(LOGIN_URL)
+        time.sleep(3)
 
-    time.sleep(5)
+        driver.find_element(By.NAME, "username").send_keys(USERNAME)
+        driver.find_element(By.NAME, "password").send_keys(PASSWORD)
+        driver.find_element(By.XPATH, "//button").click()
 
-    driver.get(SURVEY_URL)
-    time.sleep(3)
+        time.sleep(5)
 
-    page = driver.page_source
+        driver.get(SURVEY_URL)
+        time.sleep(3)
 
-    #if "No more surveys" not in page:
-    if True:
-        print("Survey detected!")
-        send_email()
-    else:
-        print("No surveys.")
+        page = driver.page_source
 
-    driver.quit()
+        # TEST MODE (always send email)
+        if True:
+            print("Survey detected!")
+            send_email()
+
+        # REAL MODE (use this later)
+        # if "No more surveys" not in page:
+        #     print("Survey detected!")
+        #     send_email()
+        # else:
+        #     print("No surveys.")
+
+    except Exception as e:
+        print("ERROR DURING CHECK:", e)
+
+    finally:
+        driver.quit()
 
 
 def run_bot():
@@ -90,6 +110,7 @@ def run_bot():
         try:
             check_surveys()
         except Exception as e:
-            print("Error:", e)
+            print("BOT ERROR:", e)
 
+        # check every 5 minutes
         time.sleep(300)
