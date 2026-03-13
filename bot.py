@@ -1,5 +1,5 @@
-import time
 import os
+import time
 import requests
 from datetime import datetime
 from playwright.sync_api import sync_playwright
@@ -14,7 +14,6 @@ RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 EMAIL_TO = os.getenv("EMAIL_TO")
 
 BOT_RUNNING = False
-
 STATUS_LOG = []
 
 browser = None
@@ -23,15 +22,11 @@ page = None
 
 def log_status(message, color):
 
-    timestamp = datetime.now().strftime("%H:%M:%S")
-
-    entry = {
-        "time": timestamp,
+    STATUS_LOG.insert(0, {
+        "time": datetime.now().strftime("%H:%M:%S"),
         "message": message,
         "color": color
-    }
-
-    STATUS_LOG.insert(0, entry)
+    })
 
     if len(STATUS_LOG) > 30:
         STATUS_LOG.pop()
@@ -54,19 +49,9 @@ def send_email(message):
     }
 
     try:
-
-        response = requests.post(
-            url,
-            json=data,
-            headers=headers,
-            timeout=20
-        )
-
-        print("EMAIL RESPONSE:", response.status_code)
-
-    except Exception as e:
-
-        print("EMAIL ERROR:", e)
+        requests.post(url, json=data, headers=headers, timeout=20)
+    except:
+        pass
 
 
 def launch_browser():
@@ -81,12 +66,10 @@ def launch_browser():
 
     page = context.new_page()
 
-    print("Browser started")
+    print("Browser launched")
 
 
 def login():
-
-    print("Logging in...")
 
     page.goto(LOGIN_URL)
 
@@ -97,64 +80,81 @@ def login():
 
     page.wait_for_timeout(5000)
 
-    print("Login complete")
-
-
-def survey_detected():
-
     page.goto(SURVEY_URL)
 
-    page.wait_for_timeout(5000)
+    log_status("Logged into TryRating", "green")
+
+
+def instant_listener():
+
+    def handle_response(response):
+
+        url = response.url.lower()
+
+        # listen for task related endpoints
+        if "task" in url or "survey" in url or "rating" in url:
+
+            try:
+
+                body = response.text()
+
+                if "No more surveys" not in body:
+
+                    log_status("Survey detected!", "green")
+
+                    send_email("New survey available!")
+
+                    print("Survey detected → pausing 30 minutes")
+
+                    time.sleep(1800)
+
+            except:
+                pass
+
+    page.on("response", handle_response)
+
+
+def fallback_check():
 
     html = page.content()
 
     if "No more surveys" not in html:
-        return True
-
-    return False
+        log_status("Survey detected (fallback)", "green")
+        send_email("New survey available!")
 
 
 def run_bot():
 
     global BOT_RUNNING
 
-    print("BOT STARTED")
-
     launch_browser()
 
     login()
 
+    instant_listener()
+
+    log_status("Bot started", "green")
+
     no_survey_counter = 0
+
+    last_check = time.time()
 
     while BOT_RUNNING:
 
         try:
 
-            print("Checking surveys...")
+            # fallback check every 10 minutes
+            if time.time() - last_check > 600:
 
-            found = survey_detected()
+                fallback_check()
 
-            if found:
-
-                log_status("Survey detected", "green")
-
-                send_email("New survey available!")
-
-                print("Survey found → pause 30 minutes")
-
-                time.sleep(1800)
-
-                no_survey_counter = 0
-
-            else:
-
-                log_status("No surveys detected", "red")
+                last_check = time.time()
 
                 no_survey_counter += 1
 
                 if no_survey_counter >= 3:
 
-                    print("3 failures → pause 10 minutes")
+                    log_status("No surveys after 3 attempts → pause 10 min", "red")
 
                     time.sleep(600)
 
@@ -162,12 +162,10 @@ def run_bot():
 
                 else:
 
-                    time.sleep(300)
+                    log_status("No surveys detected", "red")
 
         except Exception as e:
 
             log_status("Bot error occurred", "orange")
 
-            print("BOT ERROR:", e)
-
-            time.sleep(120)
+        time.sleep(5)
