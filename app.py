@@ -21,14 +21,9 @@ def start():
 
         bot.BOT_RUNNING = True
 
-        bot_thread = threading.Thread(
-            target=bot.run_bot,
-            daemon=True
-        )
+        bot_thread = threading.Thread(target=bot.run_bot, daemon=True)
 
         bot_thread.start()
-
-        print("BOT THREAD STARTED")
 
     return redirect("/")
 
@@ -37,8 +32,6 @@ def start():
 def pause():
 
     bot.BOT_RUNNING = False
-
-    print("BOT PAUSED")
 
     return redirect("/")
 
