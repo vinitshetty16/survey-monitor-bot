@@ -2,66 +2,20 @@
 <html>
 
 <head>
-
-<title>Survey Bot Control Center</title>
+<title>Survey Bot</title>
 
 <style>
 
 body{
-background:#0b0f1a;
 font-family:Arial;
-color:white;
 text-align:center;
-}
-
-h1{
-color:#00ffe7;
-}
-
-.panel{
-background:#12182b;
-border-radius:10px;
-padding:25px;
-margin:20px auto;
-width:500px;
+margin-top:120px;
 }
 
 button{
-padding:15px 40px;
-font-size:18px;
+padding:15px 35px;
+font-size:20px;
 margin:10px;
-border:none;
-border-radius:6px;
-}
-
-.start{
-background:#00ff9d;
-}
-
-.pause{
-background:#ff3d5a;
-color:white;
-}
-
-#status-box{
-margin-top:20px;
-text-align:left;
-}
-
-.log{
-padding:8px;
-}
-
-.green{
-color:#00ff9d;
-}
-
-.red{
-color:#ff3d5a;
-}
-
-.orange{
-color:#ffb347;
 }
 
 </style>
@@ -70,67 +24,40 @@ color:#ffb347;
 
 <body>
 
-<h1>Survey Bot Control Center</h1>
+<h1>Survey Monitoring Bot</h1>
 
-<div class="panel">
-
-Status:
+<h2>Status:
 {% if running %}
-<span class="green">RUNNING</span>
+Running
 {% else %}
-<span class="red">PAUSED</span>
+Paused
+{% endif %}
+</h2>
+
+{% if status %}
+<div style="margin: 25px auto; max-width: 620px; text-align: left; border: 1px solid #ddd; padding: 18px; border-radius: 10px;">
+  <div><b>Logged in:</b> {{ 'Yes' if status.logged_in else 'No' }}</div>
+  <div><b>Last result:</b> {{ status.last_result or '-' }}</div>
+  <div><b>No-survey streak:</b> {{ status.no_survey_streak }}</div>
+  <div><b>Next check in:</b>
+    {% if status.next_check_in_s is not none %}
+      {{ status.next_check_in_s }}s ({{ status.sleep_reason or '-' }})
+    {% else %}
+      -
+    {% endif %}
+  </div>
+  <div><b>Last error:</b> {{ status.last_error or '-' }}</div>
+  <div><b>Last email at (epoch):</b> {{ status.last_email_at or '-' }}</div>
+</div>
 {% endif %}
 
-<br><br>
-
 <a href="/start">
-<button class="start">Start Bot</button>
+<button>Start</button>
 </a>
 
 <a href="/pause">
-<button class="pause">Pause Bot</button>
+<button>Pause</button>
 </a>
-
-</div>
-
-<div class="panel">
-
-<h2>Activity Log</h2>
-
-<div id="status-box"></div>
-
-</div>
-
-<script>
-
-async function loadStatus(){
-
-const res = await fetch("/status")
-const data = await res.json()
-
-const box = document.getElementById("status-box")
-
-box.innerHTML=""
-
-data.logs.forEach(log=>{
-
-const row=document.createElement("div")
-
-row.className="log "+log.color
-
-row.innerHTML=`[${log.time}] ${log.message}`
-
-box.appendChild(row)
-
-})
-
-}
-
-setInterval(loadStatus,5000)
-
-loadStatus()
-
-</script>
 
 </body>
 
