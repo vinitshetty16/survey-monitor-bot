@@ -9,25 +9,21 @@
 
 body{
 background:#0b0f1a;
-font-family: "Segoe UI",sans-serif;
+font-family:Arial;
 color:white;
 text-align:center;
 }
 
 h1{
-font-size:40px;
 color:#00ffe7;
-text-shadow:0 0 10px #00ffe7;
-margin-top:40px;
 }
 
 .panel{
 background:#12182b;
-border-radius:12px;
+border-radius:10px;
 padding:25px;
 margin:20px auto;
 width:500px;
-box-shadow:0 0 20px rgba(0,255,255,0.2);
 }
 
 button{
@@ -35,45 +31,25 @@ padding:15px 40px;
 font-size:18px;
 margin:10px;
 border:none;
-border-radius:8px;
-cursor:pointer;
+border-radius:6px;
 }
 
 .start{
 background:#00ff9d;
-color:black;
-box-shadow:0 0 10px #00ff9d;
 }
 
 .pause{
 background:#ff3d5a;
 color:white;
-box-shadow:0 0 10px #ff3d5a;
-}
-
-.status{
-font-size:22px;
-margin-top:10px;
-}
-
-.running{
-color:#00ff9d;
-}
-
-.paused{
-color:#ff3d5a;
 }
 
 #status-box{
 margin-top:20px;
-max-height:300px;
-overflow-y:auto;
 text-align:left;
 }
 
 .log{
 padding:8px;
-border-bottom:1px solid rgba(255,255,255,0.05);
 }
 
 .green{
@@ -88,34 +64,24 @@ color:#ff3d5a;
 color:#ffb347;
 }
 
-.clock{
-font-size:18px;
-margin-top:10px;
-color:#aaa;
-}
-
 </style>
 
 </head>
 
 <body>
 
-<h1>🚀 Survey Bot Control Center</h1>
+<h1>Survey Bot Control Center</h1>
 
 <div class="panel">
 
-<div class="status">
 Status:
 {% if running %}
-<span class="running">RUNNING</span>
+<span class="green">RUNNING</span>
 {% else %}
-<span class="paused">PAUSED</span>
+<span class="red">PAUSED</span>
 {% endif %}
-</div>
 
-<div class="clock" id="clock"></div>
-
-<br>
+<br><br>
 
 <a href="/start">
 <button class="start">Start Bot</button>
@@ -137,20 +103,12 @@ Status:
 
 <script>
 
-function updateClock(){
-const now=new Date()
-document.getElementById("clock").innerText=
-now.toLocaleTimeString()
-}
-
-setInterval(updateClock,1000)
-
 async function loadStatus(){
 
-const res=await fetch("/status")
-const data=await res.json()
+const res = await fetch("/status")
+const data = await res.json()
 
-const box=document.getElementById("status-box")
+const box = document.getElementById("status-box")
 
 box.innerHTML=""
 
@@ -168,7 +126,7 @@ box.appendChild(row)
 
 }
 
-setInterval(loadStatus,4000)
+setInterval(loadStatus,5000)
 
 loadStatus()
 
