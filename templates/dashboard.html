@@ -2,20 +2,96 @@
 <html>
 
 <head>
-<title>Survey Bot</title>
+
+<title>Survey Bot Control Center</title>
 
 <style>
 
 body{
-font-family:Arial;
+background:#0b0f1a;
+font-family: "Segoe UI",sans-serif;
+color:white;
 text-align:center;
-margin-top:120px;
+}
+
+h1{
+font-size:40px;
+color:#00ffe7;
+text-shadow:0 0 10px #00ffe7;
+margin-top:40px;
+}
+
+.panel{
+background:#12182b;
+border-radius:12px;
+padding:25px;
+margin:20px auto;
+width:500px;
+box-shadow:0 0 20px rgba(0,255,255,0.2);
 }
 
 button{
-padding:15px 35px;
-font-size:20px;
+padding:15px 40px;
+font-size:18px;
 margin:10px;
+border:none;
+border-radius:8px;
+cursor:pointer;
+}
+
+.start{
+background:#00ff9d;
+color:black;
+box-shadow:0 0 10px #00ff9d;
+}
+
+.pause{
+background:#ff3d5a;
+color:white;
+box-shadow:0 0 10px #ff3d5a;
+}
+
+.status{
+font-size:22px;
+margin-top:10px;
+}
+
+.running{
+color:#00ff9d;
+}
+
+.paused{
+color:#ff3d5a;
+}
+
+#status-box{
+margin-top:20px;
+max-height:300px;
+overflow-y:auto;
+text-align:left;
+}
+
+.log{
+padding:8px;
+border-bottom:1px solid rgba(255,255,255,0.05);
+}
+
+.green{
+color:#00ff9d;
+}
+
+.red{
+color:#ff3d5a;
+}
+
+.orange{
+color:#ffb347;
+}
+
+.clock{
+font-size:18px;
+margin-top:10px;
+color:#aaa;
 }
 
 </style>
@@ -24,23 +100,79 @@ margin:10px;
 
 <body>
 
-<h1>Survey Monitoring Bot</h1>
+<h1>🚀 Survey Bot Control Center</h1>
 
-<h2>Status:
+<div class="panel">
+
+<div class="status">
+Status:
 {% if running %}
-Running
+<span class="running">RUNNING</span>
 {% else %}
-Paused
+<span class="paused">PAUSED</span>
 {% endif %}
-</h2>
+</div>
+
+<div class="clock" id="clock"></div>
+
+<br>
 
 <a href="/start">
-<button>Start</button>
+<button class="start">Start Bot</button>
 </a>
 
 <a href="/pause">
-<button>Pause</button>
+<button class="pause">Pause Bot</button>
 </a>
+
+</div>
+
+<div class="panel">
+
+<h2>Activity Log</h2>
+
+<div id="status-box"></div>
+
+</div>
+
+<script>
+
+function updateClock(){
+const now=new Date()
+document.getElementById("clock").innerText=
+now.toLocaleTimeString()
+}
+
+setInterval(updateClock,1000)
+
+async function loadStatus(){
+
+const res=await fetch("/status")
+const data=await res.json()
+
+const box=document.getElementById("status-box")
+
+box.innerHTML=""
+
+data.logs.forEach(log=>{
+
+const row=document.createElement("div")
+
+row.className="log "+log.color
+
+row.innerHTML=`[${log.time}] ${log.message}`
+
+box.appendChild(row)
+
+})
+
+}
+
+setInterval(loadStatus,4000)
+
+loadStatus()
+
+</script>
 
 </body>
 
