@@ -1,6 +1,8 @@
 import time
 import os
 import requests
+from datetime import datetime
+from playwright.sync_api import sync_playwright
 
 USERNAME = os.getenv("USERNAME")
 PASSWORD = os.getenv("PASSWORD")
@@ -13,13 +15,29 @@ EMAIL_TO = os.getenv("EMAIL_TO")
 
 BOT_RUNNING = False
 
-session = requests.Session()
-logged_in = False
+STATUS_LOG = []
+
+browser = None
+page = None
+
+
+def log_status(message, color):
+
+    timestamp = datetime.now().strftime("%H:%M:%S")
+
+    entry = {
+        "time": timestamp,
+        "message": message,
+        "color": color
+    }
+
+    STATUS_LOG.insert(0, entry)
+
+    if len(STATUS_LOG) > 30:
+        STATUS_LOG.pop()
 
 
 def send_email(message):
-
-    print("SENDING EMAIL...")
 
     url = "https://api.resend.com/emails"
 
@@ -44,79 +62,112 @@ def send_email(message):
             timeout=20
         )
 
-        print("EMAIL RESPONSE CODE:", response.status_code)
-        print("EMAIL RESPONSE BODY:", response.text)
+        print("EMAIL RESPONSE:", response.status_code)
 
     except Exception as e:
 
-        print("EMAIL ERROR:", str(e))
+        print("EMAIL ERROR:", e)
+
+
+def launch_browser():
+
+    global browser, page
+
+    playwright = sync_playwright().start()
+
+    browser = playwright.chromium.launch(headless=True)
+
+    context = browser.new_context()
+
+    page = context.new_page()
+
+    print("Browser started")
 
 
 def login():
 
-    global logged_in
-
     print("Logging in...")
 
-    payload = {
-        "email": USERNAME,
-        "password": PASSWORD
-    }
+    page.goto(LOGIN_URL)
 
-    response = session.post(LOGIN_URL, data=payload)
+    page.fill('input[type="email"]', USERNAME)
+    page.fill('input[type="password"]', PASSWORD)
 
-    print("Login status:", response.status_code)
+    page.click('button[type="submit"]')
 
-    if response.status_code == 200:
-        logged_in = True
-        print("Login successful")
-    else:
-        print("Login failed")
+    page.wait_for_timeout(5000)
+
+    print("Login complete")
 
 
-def check_surveys():
+def survey_detected():
 
-    global logged_in
+    page.goto(SURVEY_URL)
 
-    if not logged_in:
-        login()
+    page.wait_for_timeout(5000)
 
-    print("Checking survey page...")
+    html = page.content()
 
-    response = session.get(SURVEY_URL)
+    if "No more surveys" not in html:
+        return True
 
-    page = response.text
-
-    print("Page checked")
-
-    if "No more surveys" not in page:
-
-        print("Survey detected!")
-
-        send_email("New survey available! Login immediately.")
-
-    else:
-
-        print("No surveys found")
+    return False
 
 
 def run_bot():
 
     global BOT_RUNNING
 
-    print("BOT LOOP STARTED")
+    print("BOT STARTED")
+
+    launch_browser()
+
+    login()
+
+    no_survey_counter = 0
 
     while BOT_RUNNING:
 
-        print("BOT LOOP RUNNING")
-
         try:
 
-            check_surveys()
+            print("Checking surveys...")
+
+            found = survey_detected()
+
+            if found:
+
+                log_status("Survey detected", "green")
+
+                send_email("New survey available!")
+
+                print("Survey found → pause 30 minutes")
+
+                time.sleep(1800)
+
+                no_survey_counter = 0
+
+            else:
+
+                log_status("No surveys detected", "red")
+
+                no_survey_counter += 1
+
+                if no_survey_counter >= 3:
+
+                    print("3 failures → pause 10 minutes")
+
+                    time.sleep(600)
+
+                    no_survey_counter = 0
+
+                else:
+
+                    time.sleep(300)
 
         except Exception as e:
 
+            log_status("Bot error occurred", "orange")
+
             print("BOT ERROR:", e)
 
-        time.sleep(60)  # check every 60 seconds
-
+            time.sleep(120)
