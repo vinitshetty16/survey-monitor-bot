@@ -3,5 +3,5 @@ services:
     name: survey-bot
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && playwright install chromium
     startCommand: gunicorn app:app
