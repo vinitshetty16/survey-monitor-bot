@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, jsonify
+from flask import Flask, render_template, redirect
 import threading
 import bot
 
@@ -9,7 +9,7 @@ bot_thread = None
 
 @app.route("/")
 def home():
-    return render_template("dashboard.html", running=bot.BOT_RUNNING)
+    return render_template("dashboard.html", running=bot.BOT_RUNNING, status=bot.get_status())
 
 
 @app.route("/start")
@@ -17,12 +17,9 @@ def start():
 
     global bot_thread
 
-    if bot_thread is None or not bot_thread.is_alive():
-
+    if not bot.BOT_RUNNING:
         bot.BOT_RUNNING = True
-
-        bot_thread = threading.Thread(target=bot.run_bot, daemon=True)
-
+        bot_thread = threading.Thread(target=bot.run_bot)
         bot_thread.start()
 
     return redirect("/")
@@ -32,14 +29,7 @@ def start():
 def pause():
 
     bot.BOT_RUNNING = False
-
     return redirect("/")
-
-
-@app.route("/status")
-def status():
-
-    return jsonify({"logs": bot.STATUS_LOG})
 
 
 if __name__ == "__main__":
