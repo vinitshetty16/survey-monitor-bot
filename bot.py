@@ -1,7 +1,6 @@
-import os
 import time
+import os
 import requests
-from datetime import datetime
 
 USERNAME = os.getenv("USERNAME")
 PASSWORD = os.getenv("PASSWORD")
@@ -12,24 +11,10 @@ SURVEY_URL = os.getenv("SURVEY_URL")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 EMAIL_TO = os.getenv("EMAIL_TO")
 
-BOT_RUNNING = False
-
-STATUS_LOG = []
+BOT_RUNNING = True
 
 session = requests.Session()
 logged_in = False
-
-
-def log_status(message, color):
-
-    STATUS_LOG.insert(0, {
-        "time": datetime.now().strftime("%H:%M:%S"),
-        "message": message,
-        "color": color
-    })
-
-    if len(STATUS_LOG) > 30:
-        STATUS_LOG.pop()
 
 
 def send_email(message):
@@ -49,14 +34,31 @@ def send_email(message):
     }
 
     try:
-        requests.post(url, json=data, headers=headers, timeout=20)
-    except:
-        pass
+
+        response = requests.post(url, json=data, headers=headers)
+
+        print("EMAIL RESPONSE:", response.status_code, response.text)
+
+    except Exception as e:
+        print("EMAIL ERROR:", e)
+
+
+def _page_has_no_surveys(page_text: str) -> bool:
+    # The UI message shown when nothing is available.
+    return "no more surveys" in (page_text or "").lower()
+
+
+def _page_looks_like_login(page_text: str) -> bool:
+    # Heuristic so we can re-login if the session expires.
+    t = (page_text or "").lower()
+    return ("login to" in t and "password" in t) or ("forgot password" in t)
 
 
 def login():
 
     global logged_in
+
+    print("Logging in...")
 
     payload = {
         "email": USERNAME,
@@ -65,82 +67,81 @@ def login():
 
     response = session.post(LOGIN_URL, data=payload)
 
+    print("Login status:", response.status_code)
+
     if response.status_code == 200:
-
         logged_in = True
-
-        log_status("Login successful", "green")
-
+        print("Login successful")
     else:
+        print("Login failed")
 
-        log_status("Login failed", "orange")
 
+def check_surveys() -> bool:
 
-def check_surveys():
+    global logged_in
+
+    if not logged_in:
+        login()
+
+    print("Checking survey page...")
 
     response = session.get(SURVEY_URL)
 
     page = response.text
 
-    print("PAGE CHECKED")
+    print("Page checked")
 
-    if "No more surveys" in page:
+    if _page_looks_like_login(page):
+        print("Session looks logged out; re-logging in...")
+        logged_in = False
+        login()
+        response = session.get(SURVEY_URL)
+        page = response.text
 
+    if _page_has_no_surveys(page):
+        print("No surveys found (No more surveys message present).")
         return False
 
-    else:
-
-        return True
+    print("Survey detected! (No more surveys message NOT present)")
+    return True
 
 
 def run_bot():
 
-    global BOT_RUNNING
-
-    log_status("Bot started", "green")
-
-    login()
-
-    no_survey_counter = 0
+    # Requirements:
+    # - Check every 5 mins
+    # - If "No more surveys" is present: do nothing
+    # - Do this 3 times, then wait 15 mins, then again start
+    # - If message is gone: send email, then wait 30 mins and look again
+    no_survey_streak = 0
 
     while BOT_RUNNING:
-
         try:
+            has_survey = check_surveys()
 
-            found = check_surveys()
-
-            if found:
-
-                log_status("Survey detected", "green")
-
-                send_email("New survey available!")
-
-                print("Survey detected → pausing 30 minutes")
-
-                time.sleep(1800)
-
-                no_survey_counter = 0
-
+            if has_survey:
+                no_survey_streak = 0
+                send_email("New survey available! Login immediately.")
+                # After an alert, back off for 30 minutes.
+                sleep_s = 30 * 60
             else:
-
-                log_status("No surveys detected", "red")
-
-                no_survey_counter += 1
-
-                if no_survey_counter >= 3:
-
-                    log_status("3 attempts failed → pause 15 minutes", "red")
-
-                    time.sleep(900)
-
-                    no_survey_counter = 0
-
+                no_survey_streak += 1
+                if no_survey_streak >= 3:
+                    no_survey_streak = 0
+                    # After 3 consecutive "no survey" checks, wait 15 minutes.
+                    sleep_s = 15 * 60
                 else:
+                    # Regular polling interval.
+                    sleep_s = 5 * 60
 
-                    time.sleep(300)
+        except Exception as e:
+            print("BOT ERROR:", e)
+            # If something transient fails, try again in 5 minutes.
+            sleep_s = 5 * 60
 
-        except Exception:
-
-            log_status("Bot error occurred", "orange")
-
-            time.sleep(120)
+        # Sleep in small chunks so /pause can stop promptly.
+        remaining = sleep_s
+        while BOT_RUNNING and remaining > 0:
+            step = min(5, remaining)
+            time.sleep(step)
+            remaining -= step
