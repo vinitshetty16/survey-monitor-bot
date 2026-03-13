@@ -2,7 +2,6 @@ import os
 import time
 import requests
 from datetime import datetime
-from playwright.sync_api import sync_playwright
 
 USERNAME = os.getenv("USERNAME")
 PASSWORD = os.getenv("PASSWORD")
@@ -14,10 +13,11 @@ RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 EMAIL_TO = os.getenv("EMAIL_TO")
 
 BOT_RUNNING = False
+
 STATUS_LOG = []
 
-browser = None
-page = None
+session = requests.Session()
+logged_in = False
 
 
 def log_status(message, color):
@@ -54,107 +54,71 @@ def send_email(message):
         pass
 
 
-def launch_browser():
-
-    global browser, page
-
-    playwright = sync_playwright().start()
-
-    browser = playwright.chromium.launch(headless=True)
-
-    context = browser.new_context()
-
-    page = context.new_page()
-
-    print("Browser launched")
-
-
 def login():
 
-    page.goto(LOGIN_URL)
+    global logged_in
 
-    page.fill('input[type="email"]', USERNAME)
-    page.fill('input[type="password"]', PASSWORD)
+    payload = {
+        "email": USERNAME,
+        "password": PASSWORD
+    }
 
-    page.click('button[type="submit"]')
+    response = session.post(LOGIN_URL, data=payload)
 
-    page.wait_for_timeout(5000)
-
-    page.goto(SURVEY_URL)
-
-    log_status("Logged into TryRating", "green")
-
-
-def instant_listener():
-
-    def handle_response(response):
-
-        url = response.url.lower()
-
-        # listen for task related endpoints
-        if "task" in url or "survey" in url or "rating" in url:
-
-            try:
-
-                body = response.text()
-
-                if "No more surveys" not in body:
-
-                    log_status("Survey detected!", "green")
-
-                    send_email("New survey available!")
-
-                    print("Survey detected → pausing 30 minutes")
-
-                    time.sleep(1800)
-
-            except:
-                pass
-
-    page.on("response", handle_response)
+    if response.status_code == 200:
+        logged_in = True
+        log_status("Logged into TryRating", "green")
+    else:
+        log_status("Login failed", "orange")
 
 
-def fallback_check():
+def survey_detected():
 
-    html = page.content()
+    response = session.get(SURVEY_URL)
 
-    if "No more surveys" not in html:
-        log_status("Survey detected (fallback)", "green")
-        send_email("New survey available!")
+    page = response.text
+
+    if "No more surveys" not in page:
+        return True
+
+    return False
 
 
 def run_bot():
 
     global BOT_RUNNING
 
-    launch_browser()
+    log_status("Bot started", "green")
 
     login()
 
-    instant_listener()
-
-    log_status("Bot started", "green")
-
     no_survey_counter = 0
-
-    last_check = time.time()
 
     while BOT_RUNNING:
 
         try:
 
-            # fallback check every 10 minutes
-            if time.time() - last_check > 600:
+            found = survey_detected()
 
-                fallback_check()
+            if found:
 
-                last_check = time.time()
+                log_status("Survey detected!", "green")
+
+                send_email("New survey available!")
+
+                time.sleep(1800)
+
+                no_survey_counter = 0
+
+            else:
+
+                log_status("No surveys detected", "red")
 
                 no_survey_counter += 1
 
                 if no_survey_counter >= 3:
 
-                    log_status("No surveys after 3 attempts → pause 10 min", "red")
+                    log_status("3 attempts failed → pause 10 minutes", "red")
 
                     time.sleep(600)
 
@@ -162,10 +126,10 @@ def run_bot():
 
                 else:
 
-                    log_status("No surveys detected", "red")
+                    time.sleep(300)
 
-        except Exception as e:
+        except Exception:
 
             log_status("Bot error occurred", "orange")
 
-        time.sleep(5)
+            time.sleep(120)
