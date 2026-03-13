@@ -66,22 +66,31 @@ def login():
     response = session.post(LOGIN_URL, data=payload)
 
     if response.status_code == 200:
+
         logged_in = True
-        log_status("Logged into TryRating", "green")
+
+        log_status("Login successful", "green")
+
     else:
+
         log_status("Login failed", "orange")
 
 
-def survey_detected():
+def check_surveys():
 
     response = session.get(SURVEY_URL)
 
     page = response.text
 
-    if "No more surveys" not in page:
-        return True
+    print("PAGE CHECKED")
 
-    return False
+    if "No more surveys" in page:
+
+        return False
+
+    else:
+
+        return True
 
 
 def run_bot():
@@ -98,13 +107,15 @@ def run_bot():
 
         try:
 
-            found = survey_detected()
+            found = check_surveys()
 
             if found:
 
-                log_status("Survey detected!", "green")
+                log_status("Survey detected", "green")
 
                 send_email("New survey available!")
+
+                print("Survey detected → pausing 30 minutes")
 
                 time.sleep(1800)
 
@@ -118,9 +129,9 @@ def run_bot():
 
                 if no_survey_counter >= 3:
 
-                    log_status("3 attempts failed → pause 10 minutes", "red")
+                    log_status("3 attempts failed → pause 15 minutes", "red")
 
-                    time.sleep(600)
+                    time.sleep(900)
 
                     no_survey_counter = 0
 
