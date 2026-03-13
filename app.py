@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect
+from flask import Flask, render_template, redirect, jsonify
 import threading
 import bot
 
@@ -41,6 +41,12 @@ def pause():
     print("BOT PAUSED")
 
     return redirect("/")
+
+
+@app.route("/status")
+def status():
+
+    return jsonify({"logs": bot.STATUS_LOG})
 
 
 if __name__ == "__main__":
